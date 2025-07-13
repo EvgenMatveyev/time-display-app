@@ -5,15 +5,33 @@ import pytz
 import ttkbootstrap as ttkb
 from ttkbootstrap import ttk
 
+# === ICAO to Timezone Mapping ===
+airport_timezones = {
+    "CYWG": "America/Winnipeg", "CYBR": "America/Winnipeg", "CYQD": "America/Winnipeg", "CYFO": "America/Winnipeg",
+    "CYYL": "America/Winnipeg", "CYBQ": "America/Winnipeg", "CYBV": "America/Winnipeg", "CYNE": "America/Winnipeg",
+    "CYIV": "America/Winnipeg", "CYGX": "America/Winnipeg", "CYTH": "America/Winnipeg", "CYYQ": "America/Winnipeg",
+    "CYEK": "America/Rankin_Inlet", "CYXN": "America/Rankin_Inlet", "CYBK": "America/Rankin_Inlet",
+    "CYRT": "America/Rankin_Inlet", "CYCS": "America/Rankin_Inlet", "CYZS": "America/Rankin_Inlet",
+    "CYUT": "America/Rankin_Inlet", "CYBB": "America/Inuvik", "CYYH": "America/Inuvik", "CYGT": "America/Iqaluit",
+    "CYUX": "America/Iqaluit", "CYHK": "America/Yellowknife", "CYCB": "America/Yellowknife",
+    "CYIO": "America/Iqaluit", "CYAB": "America/Iqaluit", "CYCY": "America/Cambridge_Bay",
+    "CYRB": "America/Cambridge_Bay", "CYTE": "America/Yellowknife", "CYFB": "America/Iqaluit",
+    "CYQR": "America/Regina", "CYXE": "America/Regina", "CYPA": "America/Regina", "CYSF": "America/Regina",
+    "CYVC": "America/Regina", "CYQK": "America/Winnipeg", "CYHD": "America/Winnipeg", "CYXL": "America/Winnipeg",
+    "CYRL": "America/Winnipeg", "CYPL": "America/Winnipeg", "CYQT": "America/Thunder_Bay", "CYMO": "America/Winnipeg",
+    "CYTS": "America/Toronto", "CYSK": "America/Iqaluit", "CYGW": "America/Iqaluit", "CYGL": "America/Iqaluit",
+    "CYVP": "America/Iqaluit"
+}
+
 class TimeDisplayApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Time Zones")
-        self.root.configure(bg='black')
+        self.root.title("Airport Time Zones")
         self.root.geometry("700x400")
+        self.root.configure(bg='black')
 
         # Variables
-        self.num_zones = tk.IntVar(value=2)
+        self.num_zones = tk.IntVar(value=3)
         self.font_size = tk.DoubleVar(value=14)
         self.font_color = tk.StringVar(value="#ffffff")
         self.bg_color = tk.StringVar(value="#000000")
@@ -23,11 +41,11 @@ class TimeDisplayApp:
         self.dropdowns = []
         self.zone_frames = []
 
-        # Control Frame
+        # Controls
         control_frame = ttk.Frame(self.root)
         control_frame.pack(pady=5, fill='x')
 
-        ttk.Label(control_frame, text="Time Zones:").pack(side=tk.LEFT)
+        ttk.Label(control_frame, text="Airports:").pack(side=tk.LEFT)
         ttk.Spinbox(control_frame, from_=1, to=6, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
 
         ttk.Label(control_frame, text="Font Size:").pack(side=tk.LEFT)
@@ -41,7 +59,7 @@ class TimeDisplayApp:
 
         ttk.Checkbutton(control_frame, text="Stay on top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.LEFT, padx=5)
 
-        # Zone Display Frame
+        # Zone Display Area
         self.zones_frame = ttk.Frame(self.root)
         self.zones_frame.pack(pady=10)
 
@@ -58,21 +76,19 @@ class TimeDisplayApp:
             frame = ttk.Frame(self.zones_frame)
             frame.pack(pady=3, fill='x', expand=True)
 
-            zone_var = tk.StringVar(value="UTC" if i == 0 else "America/Winnipeg")
-            dropdown = ttk.Combobox(frame, textvariable=zone_var, values=pytz.all_timezones, width=35, state="readonly")
+            airport_var = tk.StringVar(value=list(airport_timezones.keys())[i % len(airport_timezones)])
+            dropdown = ttk.Combobox(frame, textvariable=airport_var, values=list(airport_timezones.keys()), width=10, state="readonly")
             dropdown.pack(side=tk.LEFT, padx=5)
-            self.dropdowns.append((zone_var, frame))
+            self.dropdowns.append((airport_var, frame))
 
-            # Attach display labels to frame
-            zone_label = ttk.Label(frame, text="", font=("Consolas", int(self.font_size.get()), "bold"))
-            zone_label.pack(side=tk.LEFT, padx=10)
+            time_label = ttk.Label(frame, text="", font=("Consolas", int(self.font_size.get()), "bold"))
+            time_label.pack(side=tk.LEFT, padx=10)
 
             dst_label = ttk.Label(frame, text="", font=("Consolas", 10, "italic"))
             dst_label.pack(side=tk.LEFT, padx=5)
 
-            frame.zone_label = zone_label
+            frame.time_label = time_label
             frame.dst_label = dst_label
-
             self.zone_frames.append(frame)
 
         self.update_display()
@@ -81,20 +97,22 @@ class TimeDisplayApp:
         bg = self.bg_color.get()
         fg = self.font_color.get()
 
-        for (zone_var, frame) in self.dropdowns:
+        for (airport_var, frame) in self.dropdowns:
+            code = airport_var.get()
+            tz_name = airport_timezones.get(code)
             try:
-                tz = pytz.timezone(zone_var.get())
-                now = datetime.now(tz)
-                time_str = now.strftime('%H:%M')
-                dst_flag = tz.dst(now).total_seconds() != 0
-                suffix = " Z" if zone_var.get() == "UTC" else " LT"
-                zone_text = f"{zone_var.get()}: {time_str}{suffix}"
-                dst_text = "DST" if dst_flag else "STD"
+                tz = pytz.timezone(tz_name)
+                now_utc = datetime.utcnow()
+                local_time = tz.normalize(pytz.utc.localize(now_utc).astimezone(tz))
+                time_str = local_time.strftime('%H:%M')
+                dst = local_time.dst()
+                dst_str = "DST" if dst and dst.total_seconds() > 0 else "STD"
+                label_text = f"{code} LT: {time_str}"
 
-                frame.zone_label.config(text=zone_text, font=("Consolas", int(self.font_size.get()), "bold"), foreground=fg, background=bg)
-                frame.dst_label.config(text=dst_text, font=("Consolas", 10), foreground=fg, background=bg)
-            except Exception as e:
-                frame.zone_label.config(text="Invalid Zone", foreground="red")
+                frame.time_label.config(text=label_text, font=("Consolas", int(self.font_size.get())), foreground=fg, background=bg)
+                frame.dst_label.config(text=dst_str, font=("Consolas", 10), foreground=fg, background=bg)
+            except:
+                frame.time_label.config(text="Invalid", foreground="red")
                 frame.dst_label.config(text="", background=bg)
 
         self.root.configure(bg=bg)
