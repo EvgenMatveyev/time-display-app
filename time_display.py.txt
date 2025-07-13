@@ -1,0 +1,152 @@
+import tkinter as tk
+from tkinter import ttk
+from datetime import datetime
+import pytz
+import ttkbootstrap as ttkb
+from ttkbootstrap.constants import *
+
+# Initialize window with ttkbootstrap theme
+root = ttkb.Window(themename="darkly")
+root.title("Modern Time Display")
+root.geometry("300x400")
+root.minsize(250, 300)
+
+# Time zone list
+available_timezones = [
+    "UTC",
+    "America/Winnipeg",
+    "America/New_York",
+    "Europe/London",
+    "Asia/Tokyo",
+    "Australia/Sydney",
+    "America/Los_Angeles",
+    "Europe/Paris"
+]
+
+# Store selected time zones and their labels
+selected_timezones = []
+time_labels = []
+
+def update_time():
+    for tz, label in time_labels:
+        now = datetime.now(pytz.timezone(tz)).strftime('%H:%M:%S')
+        label.config(text=f"{tz.split('/')[-1]}: {now}")
+        label.config(foreground="#00ffcc" if int(datetime.now().strftime('%S')) % 2 else "#ffffff")
+    root.after(1000, update_time)
+
+def add_timezone(event=None):
+    tz = timezone_combo.get()
+    if tz and tz not in selected_timezones and len(selected_timezones) < int(num_tz_var.get()):
+        selected_timezones.append(tz)
+        label = ttkb.Label(
+            time_frame,
+            text=f"{tz.split('/')[-1]}: --:--:--",
+            font=("Consolas", 14, "bold"),
+            bootstyle="success"
+        )
+        label.pack(pady=5)
+        time_labels.append((tz, label))
+        update_timezone_count()
+
+def update_timezone_count():
+    count_label.config(text=f"Time zones: {len(selected_timezones)}/{num_tz_var.get()}")
+    timezone_combo.configure(values=[tz for tz in available_timezones if tz not in selected_timezones])
+
+def set_num_timezones(event=None):
+    if int(num_tz_var.get()) < len(selected_timezones):
+        for _ in range(len(selected_timezones) - int(num_tz_var.get())):
+            tz, label = time_labels.pop()
+            selected_timezones.remove(tz)
+            label.destroy()
+    update_timezone_count()
+
+def set_transparency(value):
+    root.attributes('-alpha', float(value) / 100)
+
+def toggle_topmost():
+    root.attributes('-topmost', topmost_var.get())
+
+# Main frame
+main_frame = ttkb.Frame(root, padding=10)
+main_frame.pack(expand=True, fill="both")
+
+# Title
+title_label = ttkb.Label(
+    main_frame,
+    text="Time Zones",
+    font=("Helvetica", 20, "bold"),
+    bootstyle="primary"
+)
+title_label.pack(pady=10)
+
+# Time zone selection
+control_frame = ttkb.Frame(main_frame)
+control_frame.pack(fill="x", pady=5)
+
+ttkb.Label(control_frame, text="Number of time zones:", font=("Helvetica", 10)).pack(side="left")
+num_tz_var = tk.StringVar(value="2")
+num_tz_spinbox = ttkb.Spinbox(
+    control_frame,
+    from_=1,
+    to=6,
+    textvariable=num_tz_var,
+    width=5,
+    command=set_num_timezones
+)
+num_tz_spinbox.pack(side="left", padx=5)
+num_tz_spinbox.bind("<Return>", set_num_timezones)
+
+# Time zone dropdown
+timezone_combo = ttkb.Combobox(
+    control_frame,
+    values=available_timezones,
+    state="readonly",
+    width=20
+)
+timezone_combo.pack(side="left", padx=5)
+timezone_combo.bind("<<ComboboxSelected>>", add_timezone)
+
+# Current count
+count_label = ttkb.Label(main_frame, text="Time zones: 0/2", font=("Helvetica", 10))
+count_label.pack(pady=5)
+
+# Time display frame
+time_frame = ttkb.Frame(main_frame)
+time_frame.pack(fill="both", expand=True)
+
+# Transparency slider
+ttkb.Label(main_frame, text="Transparency (%):", font=("Helvetica", 10)).pack()
+transparency_var = tk.DoubleVar(value=100)
+transparency_slider = ttkb.Scale(
+    main_frame,
+    from_=20,
+    to=100,
+    orient="horizontal",
+    variable=transparency_var,
+    command=set_transparency,
+    bootstyle="success"
+)
+transparency_slider.pack(fill="x", padx=10)
+
+# Topmost checkbox
+topmost_var = tk.BooleanVar(value=True)
+topmost_check = ttkb.Checkbutton(
+    main_frame,
+    text="Stay on top",
+    variable=topmost_var,
+    command=toggle_topmost,
+    bootstyle="success"
+)
+topmost_check.pack(pady=5)
+
+# Initialize with two default time zones
+timezone_combo.set("UTC")
+add_timezone()
+timezone_combo.set("America/Winnipeg")
+add_timezone()
+
+# Start time update
+update_time()
+
+# Run the application
+root.mainloop()
