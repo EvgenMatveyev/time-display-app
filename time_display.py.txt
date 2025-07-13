@@ -26,7 +26,7 @@ class TimeDisplayApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Airport Time Zones")
-        self.root.geometry("300x400")  # Adjusted width for single column
+        self.root.geometry("300x400")
         self.root.configure(bg='black')
         self.root.attributes('-topmost', True)
 
@@ -64,8 +64,6 @@ class TimeDisplayApp:
         ttk.Label(control_frame, text="Number of Airports:").pack(side=tk.LEFT)
         ttk.Spinbox(control_frame, from_=0, to=5, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
 
-        ttk.Label(control_frame, text="(UTC is always first)", font=("Arial", 9, "italic")).pack(side=tk.LEFT, padx=10)
-
         ttk.Checkbutton(control_frame, text="Stay on Top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.RIGHT, padx=10)
 
         self.zones_frame = ttk.Frame(self.root)
@@ -94,14 +92,10 @@ class TimeDisplayApp:
         time_label = ttk.Label(frame, text="", width=10, anchor='center', font=(self.font_family.get(), int(self.font_size.get())))
         time_label.pack(side=tk.LEFT, padx=3)
 
-        local_label = ttk.Label(frame, text="", width=10, anchor='center', font=(self.font_family.get(), int(self.font_size.get())))
-        local_label.pack(side=tk.LEFT, padx=3)
-
         dst_label = ttk.Label(frame, text="", width=5, font=(self.font_family.get(), 10, "italic"))
         dst_label.pack(side=tk.LEFT, padx=3)
 
         frame.time_label = time_label
-        frame.local_label = local_label
         frame.dst_label = dst_label
         frame.is_utc = is_utc
         frame.tz_name = tz_name
@@ -117,7 +111,6 @@ class TimeDisplayApp:
                 if frame.is_utc:
                     now_utc = datetime.utcnow()
                     frame.time_label.config(text=f"{now_utc.strftime('%H:%M')} Z", font=font, foreground=fg, background=bg)
-                    frame.local_label.config(text="", background=bg)
                     frame.dst_label.config(text="STD", font=(self.font_family.get(), 10, "italic"), foreground=fg, background=bg)
                 else:
                     tz = pytz.timezone(frame.tz_name)
@@ -126,11 +119,9 @@ class TimeDisplayApp:
                     dst = local_time.dst()
                     dst_flag = "DST" if dst and dst.total_seconds() > 0 else "STD"
                     frame.time_label.config(text=f"{local_time.strftime('%H:%M')} LT", font=font, foreground=fg, background=bg)
-                    frame.local_label.config(text=f"{now.strftime('%H:%M')} Z", font=font, foreground=fg, background=bg)
                     frame.dst_label.config(text=dst_flag, font=(self.font_family.get(), 10, "italic"), foreground=fg, background=bg)
             except Exception as e:
                 frame.time_label.config(text="Invalid", foreground="red", background=bg)
-                frame.local_label.config(text="", background=bg)
                 frame.dst_label.config(text="", background=bg)
 
         self.root.configure(bg=bg)
