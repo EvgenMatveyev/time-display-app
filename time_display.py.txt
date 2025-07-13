@@ -76,10 +76,8 @@ class TimeDisplayApp:
             frame.destroy()
         self.zone_frames.clear()
 
-        # Add UTC as the first row
         self.add_zone_row("UTC", "UTC", is_utc=True)
 
-        # Add airport zones based on num_zones
         for i in range(self.num_zones.get()):
             icao_code = list(airport_timezones.keys())[i % len(airport_timezones)]
             self.add_zone_row(icao_code, airport_timezones[icao_code])
@@ -90,19 +88,23 @@ class TimeDisplayApp:
         frame = ttk.Frame(self.zones_frame)
         frame.pack(fill='x', pady=2)
 
-        # Single column layout
-        label = ttk.Label(frame, text=code if not is_utc else "UTC", width=10, anchor='w', font=(self.font_family.get(), int(self.font_size.get()), "bold"))
-        label.pack(side=tk.LEFT, padx=5)
+        label = ttk.Label(frame, text=code if not is_utc else "UTC", width=6, anchor='w', font=(self.font_family.get(), int(self.font_size.get()), "bold"))
+        label.pack(side=tk.LEFT, padx=3)
 
         time_label = ttk.Label(frame, text="", width=10, anchor='center', font=(self.font_family.get(), int(self.font_size.get())))
-        time_label.pack(side=tk.LEFT, padx=10)
+        time_label.pack(side=tk.LEFT, padx=3)
+
+        local_label = ttk.Label(frame, text="", width=10, anchor='center', font=(self.font_family.get(), int(self.font_size.get())))
+        local_label.pack(side=tk.LEFT, padx=3)
 
         dst_label = ttk.Label(frame, text="", width=5, font=(self.font_family.get(), 10, "italic"))
-        dst_label.pack(side=tk.LEFT, padx=5)
+        dst_label.pack(side=tk.LEFT, padx=3)
 
         frame.time_label = time_label
+        frame.local_label = local_label
         frame.dst_label = dst_label
         frame.is_utc = is_utc
+        frame.tz_name = tz_name
         self.zone_frames.append(frame)
 
     def update_display(self):
@@ -113,22 +115,22 @@ class TimeDisplayApp:
         for frame in self.zone_frames:
             try:
                 if frame.is_utc:
-                    now_utc = datetime.utcnow().strftime('%H:%M')
-                    frame.time_label.config(text=f"{now_utc} Z", font=font, foreground=fg, background=bg)
+                    now_utc = datetime.utcnow()
+                    frame.time_label.config(text=f"{now_utc.strftime('%H:%M')} Z", font=font, foreground=fg, background=bg)
+                    frame.local_label.config(text="", background=bg)
                     frame.dst_label.config(text="STD", font=(self.font_family.get(), 10, "italic"), foreground=fg, background=bg)
                 else:
-                    tz = pytz.timezone(tz_name)
+                    tz = pytz.timezone(frame.tz_name)
                     now = datetime.utcnow()
                     local_time = tz.normalize(pytz.utc.localize(now).astimezone(tz))
                     dst = local_time.dst()
                     dst_flag = "DST" if dst and dst.total_seconds() > 0 else "STD"
                     frame.time_label.config(text=f"{local_time.strftime('%H:%M')} LT", font=font, foreground=fg, background=bg)
+                    frame.local_label.config(text=f"{now.strftime('%H:%M')} Z", font=font, foreground=fg, background=bg)
                     frame.dst_label.config(text=dst_flag, font=(self.font_family.get(), 10, "italic"), foreground=fg, background=bg)
-            except NameError:
-                # Handle case where tz_name isn't defined for non-UTC zones (fix by passing tz_name to add_zone_row)
-                pass
             except Exception as e:
                 frame.time_label.config(text="Invalid", foreground="red", background=bg)
+                frame.local_label.config(text="", background=bg)
                 frame.dst_label.config(text="", background=bg)
 
         self.root.configure(bg=bg)
