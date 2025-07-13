@@ -13,7 +13,7 @@ jobs:
       run: |
         pip install pyinstaller ttkbootstrap pytz
     - name: Build EXE
-      run: pyinstaller --onefile --noconsole --hidden-import=ttkbootstrap time_display.py
+      run: pyinstaller --onefile --noconsole --hidden-import=ttkbootstrap time_display.py.txt
     - name: Upload EXE
       uses: actions/upload-artifact@v4
       with:
