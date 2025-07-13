@@ -36,6 +36,7 @@ class TimeDisplayApp:
         self.font_color = tk.StringVar(value="#ffffff")
         self.bg_color = tk.StringVar(value="#000000")
         self.transparency = tk.DoubleVar(value=1.0)
+        self.stay_on_top = tk.BooleanVar(value=True)
 
         self.dropdowns = []
         self.zone_frames = []
@@ -64,8 +65,9 @@ class TimeDisplayApp:
         ttk.Label(control_frame, text="Additional Airports:").pack(side=tk.LEFT)
         ttk.Spinbox(control_frame, from_=0, to=5, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
 
-        zone_label = ttk.Label(control_frame, text="(UTC is always displayed first)", font=("Arial", 9, "italic"))
-        zone_label.pack(side=tk.LEFT, padx=10)
+        ttk.Label(control_frame, text="(UTC is always displayed first)", font=("Arial", 9, "italic")).pack(side=tk.LEFT, padx=10)
+
+        ttk.Checkbutton(control_frame, text="Stay on Top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.RIGHT, padx=10)
 
         self.zones_frame = ttk.Frame(self.root)
         self.zones_frame.pack(pady=10)
@@ -76,10 +78,8 @@ class TimeDisplayApp:
         self.zone_frames.clear()
         self.dropdowns.clear()
 
-        # UTC Fixed Row
         self.add_zone_row("UTC", "UTC", is_utc=True)
 
-        # Dropdowns
         for i in range(self.num_zones.get()):
             code = list(airport_timezones.keys())[i % len(airport_timezones)]
             self.add_zone_row(code, airport_timezones[code])
@@ -88,22 +88,25 @@ class TimeDisplayApp:
 
     def add_zone_row(self, icao_code, tz_name, is_utc=False):
         frame = ttk.Frame(self.zones_frame)
-        frame.pack(pady=3, fill='x')
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_columnconfigure(1, weight=1)
+        frame.grid_columnconfigure(2, weight=1)
+        frame.pack(fill='x', pady=2)
 
         if is_utc:
-            name_label = ttk.Label(frame, text="UTC".ljust(6), width=8, anchor='w', font=(self.font_family.get(), int(self.font_size.get()), "bold"))
-            name_label.pack(side=tk.LEFT, padx=5)
+            label = ttk.Label(frame, text="UTC", width=10, anchor='w', font=(self.font_family.get(), int(self.font_size.get()), "bold"))
+            label.grid(row=0, column=0, padx=5, sticky="w")
         else:
             var = tk.StringVar(value=icao_code)
-            dropdown = ttk.Combobox(frame, textvariable=var, values=list(airport_timezones.keys()), width=8, state="readonly")
-            dropdown.pack(side=tk.LEFT, padx=5)
+            dropdown = ttk.Combobox(frame, textvariable=var, values=list(airport_timezones.keys()), width=10, state="readonly")
+            dropdown.grid(row=0, column=0, padx=5, sticky="w")
             self.dropdowns.append((var, frame))
 
-        time_label = ttk.Label(frame, text="", width=12, anchor='center', font=(self.font_family.get(), int(self.font_size.get())), background=self.bg_color.get(), foreground=self.font_color.get())
-        time_label.pack(side=tk.LEFT, padx=10)
+        time_label = ttk.Label(frame, text="", width=10, anchor='center', font=(self.font_family.get(), int(self.font_size.get())), background=self.bg_color.get(), foreground=self.font_color.get())
+        time_label.grid(row=0, column=1, padx=10)
 
-        dst_label = ttk.Label(frame, text="", font=(self.font_family.get(), 10, "italic"), background=self.bg_color.get(), foreground=self.font_color.get())
-        dst_label.pack(side=tk.LEFT, padx=5)
+        dst_label = ttk.Label(frame, text="", width=5, font=(self.font_family.get(), 10, "italic"), background=self.bg_color.get(), foreground=self.font_color.get())
+        dst_label.grid(row=0, column=2, padx=5)
 
         frame.time_label = time_label
         frame.dst_label = dst_label
@@ -171,11 +174,14 @@ class TimeDisplayApp:
         if not tz:
             return
         try:
-            pytz.timezone(tz)  # Validate
+            pytz.timezone(tz)
             airport_timezones[icao.upper()] = tz
             self.update_zone_ui()
         except:
             tk.messagebox.showerror("Invalid", "Timezone name is not valid.")
+
+    def toggle_stay_on_top(self):
+        self.root.attributes('-topmost', self.stay_on_top.get())
 
 if __name__ == "__main__":
     root = ttkb.Window(themename="darkly")
