@@ -5,17 +5,16 @@ import pytz
 import ttkbootstrap as ttkb
 from ttkbootstrap import ttk
 
-# === ICAO to Timezone Mapping ===
+# ICAO to Timezone Mapping
 airport_timezones = {
     "CYWG": "America/Winnipeg", "CYBR": "America/Winnipeg", "CYQD": "America/Winnipeg", "CYFO": "America/Winnipeg",
     "CYYL": "America/Winnipeg", "CYBQ": "America/Winnipeg", "CYBV": "America/Winnipeg", "CYNE": "America/Winnipeg",
     "CYIV": "America/Winnipeg", "CYGX": "America/Winnipeg", "CYTH": "America/Winnipeg", "CYYQ": "America/Winnipeg",
-    "CYEK": "America/Rankin_Inlet", "CYXN": "America/Rankin_Inlet", "CYBK": "America/Rankin_Inlet",
-    "CYRT": "America/Rankin_Inlet", "CYCS": "America/Rankin_Inlet", "CYZS": "America/Rankin_Inlet",
-    "CYUT": "America/Rankin_Inlet", "CYBB": "America/Inuvik", "CYYH": "America/Inuvik", "CYGT": "America/Iqaluit",
-    "CYUX": "America/Iqaluit", "CYHK": "America/Yellowknife", "CYCB": "America/Yellowknife",
-    "CYIO": "America/Iqaluit", "CYAB": "America/Iqaluit", "CYCY": "America/Cambridge_Bay",
-    "CYRB": "America/Cambridge_Bay", "CYTE": "America/Yellowknife", "CYFB": "America/Iqaluit",
+    "CYEK": "America/Rankin_Inlet", "CYXN": "America/Rankin_Inlet", "CYBK": "America/Rankin_Inlet", "CYRT": "America/Rankin_Inlet",
+    "CYCS": "America/Rankin_Inlet", "CYZS": "America/Rankin_Inlet", "CYUT": "America/Rankin_Inlet",
+    "CYBB": "America/Inuvik", "CYYH": "America/Inuvik", "CYGT": "America/Iqaluit", "CYUX": "America/Iqaluit",
+    "CYHK": "America/Yellowknife", "CYCB": "America/Yellowknife", "CYIO": "America/Iqaluit", "CYAB": "America/Iqaluit",
+    "CYCY": "America/Cambridge_Bay", "CYRB": "America/Cambridge_Bay", "CYTE": "America/Yellowknife", "CYFB": "America/Iqaluit",
     "CYQR": "America/Regina", "CYXE": "America/Regina", "CYPA": "America/Regina", "CYSF": "America/Regina",
     "CYVC": "America/Regina", "CYQK": "America/Winnipeg", "CYHD": "America/Winnipeg", "CYXL": "America/Winnipeg",
     "CYRL": "America/Winnipeg", "CYPL": "America/Winnipeg", "CYQT": "America/Thunder_Bay", "CYMO": "America/Winnipeg",
@@ -30,7 +29,6 @@ class TimeDisplayApp:
         self.root.geometry("700x400")
         self.root.configure(bg='black')
 
-        # Variables
         self.num_zones = tk.IntVar(value=3)
         self.font_size = tk.DoubleVar(value=14)
         self.font_color = tk.StringVar(value="#ffffff")
@@ -46,7 +44,7 @@ class TimeDisplayApp:
         control_frame.pack(pady=5, fill='x')
 
         ttk.Label(control_frame, text="Airports:").pack(side=tk.LEFT)
-        ttk.Spinbox(control_frame, from_=1, to=6, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
+        ttk.Spinbox(control_frame, from_=0, to=5, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
 
         ttk.Label(control_frame, text="Font Size:").pack(side=tk.LEFT)
         ttk.Scale(control_frame, from_=10, to=30, variable=self.font_size, orient=tk.HORIZONTAL, length=100, command=lambda e: self.update_display()).pack(side=tk.LEFT)
@@ -59,7 +57,7 @@ class TimeDisplayApp:
 
         ttk.Checkbutton(control_frame, text="Stay on top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.LEFT, padx=5)
 
-        # Zone Display Area
+        # Display area
         self.zones_frame = ttk.Frame(self.root)
         self.zones_frame.pack(pady=10)
 
@@ -72,16 +70,31 @@ class TimeDisplayApp:
         self.zone_frames.clear()
         self.dropdowns.clear()
 
+        # UTC First Row
+        utc_frame = ttk.Frame(self.zones_frame)
+        utc_frame.pack(pady=3, fill='x')
+        label = ttk.Label(utc_frame, text="UTC", font=("Consolas", int(self.font_size.get()), "bold"))
+        label.pack(side=tk.LEFT, padx=5)
+        time_label = ttk.Label(utc_frame, text="", font=("Consolas", int(self.font_size.get())))
+        time_label.pack(side=tk.LEFT, padx=10)
+        dst_label = ttk.Label(utc_frame, text="STD", font=("Consolas", 10, "italic"))
+        dst_label.pack(side=tk.LEFT, padx=5)
+
+        utc_frame.time_label = time_label
+        utc_frame.dst_label = dst_label
+        self.zone_frames.append(utc_frame)
+
+        # ICAO Dropdowns
         for i in range(self.num_zones.get()):
             frame = ttk.Frame(self.zones_frame)
-            frame.pack(pady=3, fill='x', expand=True)
+            frame.pack(pady=3, fill='x')
 
             airport_var = tk.StringVar(value=list(airport_timezones.keys())[i % len(airport_timezones)])
             dropdown = ttk.Combobox(frame, textvariable=airport_var, values=list(airport_timezones.keys()), width=10, state="readonly")
             dropdown.pack(side=tk.LEFT, padx=5)
             self.dropdowns.append((airport_var, frame))
 
-            time_label = ttk.Label(frame, text="", font=("Consolas", int(self.font_size.get()), "bold"))
+            time_label = ttk.Label(frame, text="", font=("Consolas", int(self.font_size.get())))
             time_label.pack(side=tk.LEFT, padx=10)
 
             dst_label = ttk.Label(frame, text="", font=("Consolas", 10, "italic"))
@@ -97,22 +110,26 @@ class TimeDisplayApp:
         bg = self.bg_color.get()
         fg = self.font_color.get()
 
-        for (airport_var, frame) in self.dropdowns:
+        # UTC update
+        utc_frame = self.zone_frames[0]
+        utc_now = datetime.utcnow().strftime('%H:%M')
+        utc_frame.time_label.config(text=f"UTC LT: {utc_now} Z", foreground=fg, background=bg)
+        utc_frame.dst_label.config(text="STD", foreground=fg, background=bg)
+
+        # ICAO zones update
+        for idx, (airport_var, frame) in enumerate(self.dropdowns, start=1):
             code = airport_var.get()
             tz_name = airport_timezones.get(code)
             try:
                 tz = pytz.timezone(tz_name)
-                now_utc = datetime.utcnow()
-                local_time = tz.normalize(pytz.utc.localize(now_utc).astimezone(tz))
-                time_str = local_time.strftime('%H:%M')
-                dst = local_time.dst()
+                now_local = tz.normalize(pytz.utc.localize(datetime.utcnow()).astimezone(tz))
+                time_str = now_local.strftime('%H:%M')
+                dst = now_local.dst()
                 dst_str = "DST" if dst and dst.total_seconds() > 0 else "STD"
-                label_text = f"{code} LT: {time_str}"
-
-                frame.time_label.config(text=label_text, font=("Consolas", int(self.font_size.get())), foreground=fg, background=bg)
-                frame.dst_label.config(text=dst_str, font=("Consolas", 10), foreground=fg, background=bg)
+                frame.time_label.config(text=f"{code} LT: {time_str}", foreground=fg, background=bg)
+                frame.dst_label.config(text=dst_str, foreground=fg, background=bg)
             except:
-                frame.time_label.config(text="Invalid", foreground="red")
+                frame.time_label.config(text="Invalid", foreground="red", background=bg)
                 frame.dst_label.config(text="", background=bg)
 
         self.root.configure(bg=bg)
