@@ -1,152 +1,153 @@
 import tkinter as tk
 from tkinter import ttk
-from datetime import datetime
 import pytz
+from datetime import datetime
 import ttkbootstrap as ttkb
-from ttkbootstrap.constants import *
+from tkinter import colorchooser
 
-# Initialize window with ttkbootstrap theme
-root = ttkb.Window(themename="darkly")
-root.title("Modern Time Display")
-root.geometry("300x400")
-root.minsize(250, 300)
+class TimeDisplayApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Time Zones")
+        self.root.configure(bg='black')
 
-# Time zone list
-available_timezones = [
-    "UTC",
-    "America/Winnipeg",
-    "America/New_York",
-    "Europe/London",
-    "Asia/Tokyo",
-    "Australia/Sydney",
-    "America/Los_Angeles",
-    "Europe/Paris"
-]
+        # Variables
+        self.num_zones = tk.IntVar(value=1)
+        self.zones = []
+        self.labels = []
+        self.times = []
+        self.dsts = []
+        self.font_size = tk.DoubleVar(value=12)
+        self.font_color = tk.StringVar(value="#ffffff")
+        self.bg_color = tk.StringVar(value="#000000")
+        self.transparency = tk.DoubleVar(value=1.0)
 
-# Store selected time zones and their labels
-selected_timezones = []
-time_labels = []
+        # Frame for controls
+        control_frame = ttk.Frame(root)
+        control_frame.pack(pady=10)
 
-def update_time():
-    for tz, label in time_labels:
-        now = datetime.now(pytz.timezone(tz)).strftime('%H:%M:%S')
-        label.config(text=f"{tz.split('/')[-1]}: {now}")
-        label.config(foreground="#00ffcc" if int(datetime.now().strftime('%S')) % 2 else "#ffffff")
-    root.after(1000, update_time)
+        # Number of time zones
+        ttk.Label(control_frame, text="Number of Time Zones:").pack(side=tk.LEFT)
+        spinbox = ttk.Spinbox(control_frame, from_=1, to=6, textvariable=self.num_zones, command=self.update_zones)
+        spinbox.pack(side=tk.LEFT, padx=5)
 
-def add_timezone(event=None):
-    tz = timezone_combo.get()
-    if tz and tz not in selected_timezones and len(selected_timezones) < int(num_tz_var.get()):
-        selected_timezones.append(tz)
-        label = ttkb.Label(
-            time_frame,
-            text=f"{tz.split('/')[-1]}: --:--:--",
-            font=("Consolas", 14, "bold"),
-            bootstyle="success"
-        )
-        label.pack(pady=5)
-        time_labels.append((tz, label))
-        update_timezone_count()
+        # Time Zone Dropdowns
+        self.dropdowns = []
+        for i in range(6):
+            frame = ttk.Frame(control_frame)
+            frame.pack(side=tk.LEFT, padx=5)
+            var = tk.StringVar(value=pytz.all_timezones[i] if i < len(pytz.all_timezones) else "")
+            dropdown = ttk.Combobox(frame, textvariable=var, values=list(pytz.all_timezones), state="readonly")
+            dropdown.pack()
+            self.dropdowns.append((frame, var))
 
-def update_timezone_count():
-    count_label.config(text=f"Time zones: {len(selected_timezones)}/{num_tz_var.get()}")
-    timezone_combo.configure(values=[tz for tz in available_timezones if tz not in selected_timezones])
+        # Font Size Slider
+        ttk.Label(control_frame, text="Font Size:").pack(side=tk.LEFT, padx=5)
+        font_slider = ttk.Scale(control_frame, from_=8, to=24, variable=self.font_size, orient=tk.HORIZONTAL, command=self.update_display)
+        font_slider.pack(side=tk.LEFT, padx=5)
 
-def set_num_timezones(event=None):
-    if int(num_tz_var.get()) < len(selected_timezones):
-        for _ in range(len(selected_timezones) - int(num_tz_var.get())):
-            tz, label = time_labels.pop()
-            selected_timezones.remove(tz)
-            label.destroy()
-    update_timezone_count()
+        # Font Color Picker
+        ttk.Button(control_frame, text="Font Color", command=self.choose_font_color).pack(side=tk.LEFT, padx=5)
 
-def set_transparency(value):
-    root.attributes('-alpha', float(value) / 100)
+        # Background Color Picker
+        ttk.Button(control_frame, text="Background Color", command=self.choose_bg_color).pack(side=tk.LEFT, padx=5)
 
-def toggle_topmost():
-    root.attributes('-topmost', topmost_var.get())
+        # Transparency Slider
+        ttk.Label(control_frame, text="Transparency (0-1):").pack(side=tk.LEFT, padx=5)
+        trans_slider = ttk.Scale(control_frame, from_=0.1, to=1.0, variable=self.transparency, orient=tk.HORIZONTAL, command=self.update_transparency)
+        trans_slider.pack(side=tk.LEFT, padx=5)
 
-# Main frame
-main_frame = ttkb.Frame(root, padding=10)
-main_frame.pack(expand=True, fill="both")
+        # Stay on Top Checkbox
+        self.stay_on_top = tk.BooleanVar(value=True)
+        ttk.Checkbutton(control_frame, text="Stay on top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.LEFT, padx=5)
 
-# Title
-title_label = ttkb.Label(
-    main_frame,
-    text="Time Zones",
-    font=("Helvetica", 20, "bold"),
-    bootstyle="primary"
-)
-title_label.pack(pady=10)
+        # Display Frame
+        display_frame = ttk.Frame(root)
+        display_frame.pack(pady=10)
 
-# Time zone selection
-control_frame = ttkb.Frame(main_frame)
-control_frame.pack(fill="x", pady=5)
+        self.update_zones()
 
-ttkb.Label(control_frame, text="Number of time zones:", font=("Helvetica", 10)).pack(side="left")
-num_tz_var = tk.StringVar(value="2")
-num_tz_spinbox = ttkb.Spinbox(
-    control_frame,
-    from_=1,
-    to=6,
-    textvariable=num_tz_var,
-    width=5,
-    command=set_num_timezones
-)
-num_tz_spinbox.pack(side="left", padx=5)
-num_tz_spinbox.bind("<Return>", set_num_timezones)
+        # Update time every second
+        self.update_time()
+        self.root.mainloop()
 
-# Time zone dropdown
-timezone_combo = ttkb.Combobox(
-    control_frame,
-    values=available_timezones,
-    state="readonly",
-    width=20
-)
-timezone_combo.pack(side="left", padx=5)
-timezone_combo.bind("<<ComboboxSelected>>", add_timezone)
+    def update_zones(self):
+        current = len(self.zones)
+        needed = self.num_zones.get()
 
-# Current count
-count_label = ttkb.Label(main_frame, text="Time zones: 0/2", font=("Helvetica", 10))
-count_label.pack(pady=5)
+        # Remove extra zones
+        while len(self.zones) > needed:
+            self.zones.pop().pack_forget()
+            self.labels.pop().pack_forget()
+            self.times.pop().pack_forget()
+            self.dsts.pop().pack_forget()
 
-# Time display frame
-time_frame = ttkb.Frame(main_frame)
-time_frame.pack(fill="both", expand=True)
+        # Add new zones
+        for i in range(current, needed):
+            zone_label = ttk.Label(self.root, text="", font=("Arial", int(self.font_size.get()), "bold"), fg=self.font_color.get(), bg=self.bg_color.get())
+            zone_label.pack()
+            self.labels.append(zone_label)
 
-# Transparency slider
-ttkb.Label(main_frame, text="Transparency (%):", font=("Helvetica", 10)).pack()
-transparency_var = tk.DoubleVar(value=100)
-transparency_slider = ttkb.Scale(
-    main_frame,
-    from_=20,
-    to=100,
-    orient="horizontal",
-    variable=transparency_var,
-    command=set_transparency,
-    bootstyle="success"
-)
-transparency_slider.pack(fill="x", padx=10)
+            time_label = ttk.Label(self.root, text="", font=("Arial", int(self.font_size.get())), fg=self.font_color.get(), bg=self.bg_color.get())
+            time_label.pack()
+            self.times.append(time_label)
 
-# Topmost checkbox
-topmost_var = tk.BooleanVar(value=True)
-topmost_check = ttkb.Checkbutton(
-    main_frame,
-    text="Stay on top",
-    variable=topmost_var,
-    command=toggle_topmost,
-    bootstyle="success"
-)
-topmost_check.pack(pady=5)
+            dst_label = ttk.Label(self.root, text="", font=("Arial", 8), fg=self.font_color.get(), bg=self.bg_color.get())
+            dst_label.pack()
+            self.dsts.append(dst_label)
 
-# Initialize with two default time zones
-timezone_combo.set("UTC")
-add_timezone()
-timezone_combo.set("America/Winnipeg")
-add_timezone()
+            self.zones.append((self.dropdowns[i][1].get(), zone_label, time_label, dst_label))
 
-# Start time update
-update_time()
+        self.update_display()
 
-# Run the application
-root.mainloop()
+    def update_display(self, *args):
+        for i, (zone_name, zone_label, time_label, dst_label) in enumerate(self.zones):
+            if i < self.num_zones.get():
+                try:
+                    tz = pytz.timezone(zone_name)
+                    now = datetime.now(tz)
+                    time_str = now.strftime("%H:%M")
+                    if zone_name == "UTC":
+                        time_str += " Z"
+                    else:
+                        time_str += " LT"
+                    zone_label.config(text=zone_name, font=("Arial", int(self.font_size.get()), "bold"))
+                    time_label.config(text=time_str, font=("Arial", int(self.font_size.get())))
+                    dst = tz.localize(now).dst()
+                    dst_label.config(text="DST" if dst else "STD", font=("Arial", 8))
+                except:
+                    zone_label.config(text="Invalid Zone")
+                    time_label.config(text="")
+                    dst_label.config(text="")
+            else:
+                zone_label.pack_forget()
+                time_label.pack_forget()
+                dst_label.pack_forget()
+
+    def update_time(self):
+        self.update_display()
+        self.root.after(1000, self.update_time)
+
+    def choose_font_color(self):
+        color = colorchooser.askcolor(title="Choose Font Color")[1]
+        if color:
+            self.font_color.set(color)
+            self.update_display()
+
+    def choose_bg_color(self):
+        color = colorchooser.askcolor(title="Choose Background Color")[1]
+        if color:
+            self.bg_color.set(color)
+            self.root.configure(bg=color)
+            self.update_display()
+
+    def update_transparency(self, *args):
+        self.root.attributes('-alpha', self.transparency.get())
+        self.update_display()
+
+    def toggle_stay_on_top(self):
+        self.root.attributes('-topmost', self.stay_on_top.get())
+
+if __name__ == "__main__":
+    root = ttkb.Window(themename="darkly")
+    app = TimeDisplayApp(root)
