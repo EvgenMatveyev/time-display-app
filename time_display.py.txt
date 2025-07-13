@@ -94,8 +94,10 @@ class TimeDisplayApp:
         frame.pack(fill='x', pady=2)
 
         if is_utc:
-            label = ttk.Label(frame, text="UTC", width=10, anchor='w', font=(self.font_family.get(), int(self.font_size.get()), "bold"))
+            var = tk.StringVar(value="UTC")
+            label = ttk.Label(frame, textvariable=var, width=10, anchor='w', font=(self.font_family.get(), int(self.font_size.get()), "bold"))
             label.grid(row=0, column=0, padx=5, sticky="w")
+            self.dropdowns.append((var, frame))
         else:
             var = tk.StringVar(value=icao_code)
             dropdown = ttk.Combobox(frame, textvariable=var, values=list(airport_timezones.keys()), width=10, state="readonly")
@@ -120,12 +122,12 @@ class TimeDisplayApp:
 
         for i, frame in enumerate(self.zone_frames):
             try:
+                code, _ = self.dropdowns[i]
                 if frame.is_utc:
                     now_utc = datetime.utcnow().strftime('%H:%M')
                     frame.time_label.config(text=f"{now_utc} Z", font=font, foreground=fg, background=bg)
                     frame.dst_label.config(text="STD", foreground=fg, background=bg)
                 else:
-                    code, _ = self.dropdowns[i - 1]
                     tz_name = airport_timezones.get(code.get())
                     tz = pytz.timezone(tz_name)
                     now = datetime.utcnow()
