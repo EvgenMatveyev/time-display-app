@@ -1,128 +1,92 @@
 import tkinter as tk
-from tkinter import ttk
-import pytz
-from datetime import datetime
-import ttkbootstrap as ttkb
 from tkinter import colorchooser
+from datetime import datetime
+import pytz
+import ttkbootstrap as ttkb
+from ttkbootstrap import ttk
 
 class TimeDisplayApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Time Zones")
         self.root.configure(bg='black')
+        self.root.geometry("600x300")
 
         # Variables
         self.num_zones = tk.IntVar(value=1)
-        self.zones = []
-        self.labels = []
-        self.times = []
-        self.dsts = []
-        self.font_size = tk.DoubleVar(value=12)
+        self.font_size = tk.DoubleVar(value=14)
         self.font_color = tk.StringVar(value="#ffffff")
         self.bg_color = tk.StringVar(value="#000000")
         self.transparency = tk.DoubleVar(value=1.0)
-
-        # Frame for controls
-        control_frame = ttk.Frame(root)
-        control_frame.pack(pady=10)
-
-        # Number of time zones
-        ttk.Label(control_frame, text="Number of Time Zones:").pack(side=tk.LEFT)
-        spinbox = ttk.Spinbox(control_frame, from_=1, to=6, textvariable=self.num_zones, command=self.update_zones)
-        spinbox.pack(side=tk.LEFT, padx=5)
-
-        # Time Zone Dropdowns
-        self.dropdowns = []
-        for i in range(6):
-            frame = ttk.Frame(control_frame)
-            frame.pack(side=tk.LEFT, padx=5)
-            var = tk.StringVar(value=pytz.all_timezones[i] if i < len(pytz.all_timezones) else "")
-            dropdown = ttk.Combobox(frame, textvariable=var, values=list(pytz.all_timezones), state="readonly")
-            dropdown.pack()
-            self.dropdowns.append((frame, var))
-
-        # Font Size Slider
-        ttk.Label(control_frame, text="Font Size:").pack(side=tk.LEFT, padx=5)
-        font_slider = ttk.Scale(control_frame, from_=8, to=24, variable=self.font_size, orient=tk.HORIZONTAL, command=self.update_display)
-        font_slider.pack(side=tk.LEFT, padx=5)
-
-        # Font Color Picker
-        ttk.Button(control_frame, text="Font Color", command=self.choose_font_color).pack(side=tk.LEFT, padx=5)
-
-        # Background Color Picker
-        ttk.Button(control_frame, text="Background Color", command=self.choose_bg_color).pack(side=tk.LEFT, padx=5)
-
-        # Transparency Slider
-        ttk.Label(control_frame, text="Transparency (0-1):").pack(side=tk.LEFT, padx=5)
-        trans_slider = ttk.Scale(control_frame, from_=0.1, to=1.0, variable=self.transparency, orient=tk.HORIZONTAL, command=self.update_transparency)
-        trans_slider.pack(side=tk.LEFT, padx=5)
-
-        # Stay on Top Checkbox
         self.stay_on_top = tk.BooleanVar(value=True)
+
+        self.dropdowns = []
+        self.labels = []
+
+        # Control Frame
+        control_frame = ttk.Frame(self.root)
+        control_frame.pack(pady=5)
+
+        ttk.Label(control_frame, text="Time Zones:").pack(side=tk.LEFT)
+        ttk.Spinbox(control_frame, from_=1, to=6, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
+
+        ttk.Label(control_frame, text="Font Size:").pack(side=tk.LEFT)
+        ttk.Scale(control_frame, from_=10, to=30, variable=self.font_size, orient=tk.HORIZONTAL, length=100, command=lambda e: self.update_display()).pack(side=tk.LEFT)
+
+        ttk.Button(control_frame, text="Font Color", command=self.choose_font_color).pack(side=tk.LEFT, padx=5)
+        ttk.Button(control_frame, text="Background", command=self.choose_bg_color).pack(side=tk.LEFT)
+
+        ttk.Label(control_frame, text="Transparency:").pack(side=tk.LEFT, padx=5)
+        ttk.Scale(control_frame, from_=0.1, to=1.0, variable=self.transparency, orient=tk.HORIZONTAL, length=80, command=self.update_transparency).pack(side=tk.LEFT)
+
         ttk.Checkbutton(control_frame, text="Stay on top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.LEFT, padx=5)
 
-        # Display Frame
-        display_frame = ttk.Frame(root)
-        display_frame.pack(pady=10)
+        # Dropdowns + Display Frame
+        self.zones_frame = ttk.Frame(self.root)
+        self.zones_frame.pack(pady=5)
 
-        self.update_zones()
-
-        # Update time every second
+        self.update_zone_ui()
         self.update_time()
-        self.root.mainloop()
 
-    def update_zones(self):
-        current = len(self.zones)
-        needed = self.num_zones.get()
+    def update_zone_ui(self):
+        for frame in self.dropdowns:
+            frame.destroy()
+        for frame in self.labels:
+            frame.destroy()
 
-        # Remove extra zones
-        while len(self.zones) > needed:
-            self.zones.pop().pack_forget()
-            self.labels.pop().pack_forget()
-            self.times.pop().pack_forget()
-            self.dsts.pop().pack_forget()
+        self.dropdowns.clear()
+        self.labels.clear()
 
-        # Add new zones
-        for i in range(current, needed):
-            zone_label = ttk.Label(self.root, text="", font=("Arial", int(self.font_size.get()), "bold"), fg=self.font_color.get(), bg=self.bg_color.get())
-            zone_label.pack()
-            self.labels.append(zone_label)
+        for i in range(self.num_zones.get()):
+            frame = ttk.Frame(self.zones_frame)
+            frame.pack(pady=3)
 
-            time_label = ttk.Label(self.root, text="", font=("Arial", int(self.font_size.get())), fg=self.font_color.get(), bg=self.bg_color.get())
-            time_label.pack()
-            self.times.append(time_label)
+            zone_var = tk.StringVar(value="UTC")
+            dropdown = ttk.Combobox(frame, textvariable=zone_var, values=pytz.all_timezones, width=35, state="readonly")
+            dropdown.pack(side=tk.LEFT, padx=5)
+            self.dropdowns.append(dropdown)
 
-            dst_label = ttk.Label(self.root, text="", font=("Arial", 8), fg=self.font_color.get(), bg=self.bg_color.get())
-            dst_label.pack()
-            self.dsts.append(dst_label)
-
-            self.zones.append((self.dropdowns[i][1].get(), zone_label, time_label, dst_label))
+            zone_label = ttk.Label(frame, text="", font=("Consolas", int(self.font_size.get()), "bold"))
+            zone_label.pack(side=tk.LEFT, padx=10)
+            self.labels.append((zone_var, zone_label))
 
         self.update_display()
 
-    def update_display(self, *args):
-        for i, (zone_name, zone_label, time_label, dst_label) in enumerate(self.zones):
-            if i < self.num_zones.get():
-                try:
-                    tz = pytz.timezone(zone_name)
-                    now = datetime.now(tz)
-                    time_str = now.strftime("%H:%M")
-                    if zone_name == "UTC":
-                        time_str += " Z"
-                    else:
-                        time_str += " LT"
-                    zone_label.config(text=zone_name, font=("Arial", int(self.font_size.get()), "bold"))
-                    time_label.config(text=time_str, font=("Arial", int(self.font_size.get())))
-                    dst = tz.localize(now).dst()
-                    dst_label.config(text="DST" if dst else "STD", font=("Arial", 8))
-                except:
-                    zone_label.config(text="Invalid Zone")
-                    time_label.config(text="")
-                    dst_label.config(text="")
-            else:
-                zone_label.pack_forget()
-                time_label.pack_forget()
-                dst_label.pack_forget()
+    def update_display(self):
+        bg = self.bg_color.get()
+        fg = self.font_color.get()
+
+        for (zone_var, label) in self.labels:
+            try:
+                tz = pytz.timezone(zone_var.get())
+                now = datetime.now(tz)
+                time_str = now.strftime('%H:%M')
+                label.config(text=f"{zone_var.get()}: {time_str}", font=("Consolas", int(self.font_size.get()), "bold"), background=bg, foreground=fg)
+            except:
+                label.config(text="Invalid zone", foreground="red")
+
+        self.root.configure(bg=bg)
+        self.zones_frame.configure(style="TFrame")
 
     def update_time(self):
         self.update_display()
@@ -138,16 +102,15 @@ class TimeDisplayApp:
         color = colorchooser.askcolor(title="Choose Background Color")[1]
         if color:
             self.bg_color.set(color)
-            self.root.configure(bg=color)
             self.update_display()
 
-    def update_transparency(self, *args):
-        self.root.attributes('-alpha', self.transparency.get())
-        self.update_display()
+    def update_transparency(self, *_):
+        self.root.attributes("-alpha", self.transparency.get())
 
     def toggle_stay_on_top(self):
-        self.root.attributes('-topmost', self.stay_on_top.get())
+        self.root.attributes("-topmost", self.stay_on_top.get())
 
 if __name__ == "__main__":
     root = ttkb.Window(themename="darkly")
     app = TimeDisplayApp(root)
+    root.mainloop()
