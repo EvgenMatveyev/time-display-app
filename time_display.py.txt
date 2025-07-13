@@ -10,10 +10,10 @@ class TimeDisplayApp:
         self.root = root
         self.root.title("Time Zones")
         self.root.configure(bg='black')
-        self.root.geometry("600x300")
+        self.root.geometry("700x400")
 
         # Variables
-        self.num_zones = tk.IntVar(value=1)
+        self.num_zones = tk.IntVar(value=2)
         self.font_size = tk.DoubleVar(value=14)
         self.font_color = tk.StringVar(value="#ffffff")
         self.bg_color = tk.StringVar(value="#000000")
@@ -21,11 +21,11 @@ class TimeDisplayApp:
         self.stay_on_top = tk.BooleanVar(value=True)
 
         self.dropdowns = []
-        self.labels = []
+        self.zone_frames = []
 
         # Control Frame
         control_frame = ttk.Frame(self.root)
-        control_frame.pack(pady=5)
+        control_frame.pack(pady=5, fill='x')
 
         ttk.Label(control_frame, text="Time Zones:").pack(side=tk.LEFT)
         ttk.Spinbox(control_frame, from_=1, to=6, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
@@ -41,34 +41,39 @@ class TimeDisplayApp:
 
         ttk.Checkbutton(control_frame, text="Stay on top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.LEFT, padx=5)
 
-        # Dropdowns + Display Frame
+        # Zone Display Frame
         self.zones_frame = ttk.Frame(self.root)
-        self.zones_frame.pack(pady=5)
+        self.zones_frame.pack(pady=10)
 
         self.update_zone_ui()
         self.update_time()
 
     def update_zone_ui(self):
-        for frame in self.dropdowns:
+        for frame in self.zone_frames:
             frame.destroy()
-        for frame in self.labels:
-            frame.destroy()
-
+        self.zone_frames.clear()
         self.dropdowns.clear()
-        self.labels.clear()
 
         for i in range(self.num_zones.get()):
             frame = ttk.Frame(self.zones_frame)
-            frame.pack(pady=3)
+            frame.pack(pady=3, fill='x', expand=True)
 
-            zone_var = tk.StringVar(value="UTC")
+            zone_var = tk.StringVar(value="UTC" if i == 0 else "America/Winnipeg")
             dropdown = ttk.Combobox(frame, textvariable=zone_var, values=pytz.all_timezones, width=35, state="readonly")
             dropdown.pack(side=tk.LEFT, padx=5)
-            self.dropdowns.append(dropdown)
+            self.dropdowns.append((zone_var, frame))
 
+            # Attach display labels to frame
             zone_label = ttk.Label(frame, text="", font=("Consolas", int(self.font_size.get()), "bold"))
             zone_label.pack(side=tk.LEFT, padx=10)
-            self.labels.append((zone_var, zone_label))
+
+            dst_label = ttk.Label(frame, text="", font=("Consolas", 10, "italic"))
+            dst_label.pack(side=tk.LEFT, padx=5)
+
+            frame.zone_label = zone_label
+            frame.dst_label = dst_label
+
+            self.zone_frames.append(frame)
 
         self.update_display()
 
@@ -76,17 +81,23 @@ class TimeDisplayApp:
         bg = self.bg_color.get()
         fg = self.font_color.get()
 
-        for (zone_var, label) in self.labels:
+        for (zone_var, frame) in self.dropdowns:
             try:
                 tz = pytz.timezone(zone_var.get())
                 now = datetime.now(tz)
                 time_str = now.strftime('%H:%M')
-                label.config(text=f"{zone_var.get()}: {time_str}", font=("Consolas", int(self.font_size.get()), "bold"), background=bg, foreground=fg)
-            except:
-                label.config(text="Invalid zone", foreground="red")
+                dst_flag = tz.dst(now).total_seconds() != 0
+                suffix = " Z" if zone_var.get() == "UTC" else " LT"
+                zone_text = f"{zone_var.get()}: {time_str}{suffix}"
+                dst_text = "DST" if dst_flag else "STD"
+
+                frame.zone_label.config(text=zone_text, font=("Consolas", int(self.font_size.get()), "bold"), foreground=fg, background=bg)
+                frame.dst_label.config(text=dst_text, font=("Consolas", 10), foreground=fg, background=bg)
+            except Exception as e:
+                frame.zone_label.config(text="Invalid Zone", foreground="red")
+                frame.dst_label.config(text="", background=bg)
 
         self.root.configure(bg=bg)
-        self.zones_frame.configure(style="TFrame")
 
     def update_time(self):
         self.update_display()
