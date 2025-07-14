@@ -1,178 +1,182 @@
 import tkinter as tk
-from tkinter import colorchooser, simpledialog
-from datetime import datetime
+from tkinter import simpledialog, colorchooser, font
+from tkinter import ttk as ttk_original
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from datetime import datetime, timedelta
 import pytz
-import ttkbootstrap as ttkb
-from ttkbootstrap import ttk
 
-# Initial airport time zone mapping
+# Updated airport timezone mapping
 airport_timezones = {
     "CYWG": "America/Winnipeg", "CYBR": "America/Winnipeg", "CYQD": "America/Winnipeg", "CYFO": "America/Winnipeg",
     "CYYL": "America/Winnipeg", "CYBQ": "America/Winnipeg", "CYBV": "America/Winnipeg", "CYNE": "America/Winnipeg",
     "CYIV": "America/Winnipeg", "CYGX": "America/Winnipeg", "CYTH": "America/Winnipeg", "CYYQ": "America/Winnipeg",
     "CYEK": "America/Rankin_Inlet", "CYXN": "America/Rankin_Inlet", "CYBK": "America/Rankin_Inlet", "CYRT": "America/Rankin_Inlet",
-    "CYCS": "America/Rankin_Inlet", "CYZS": "America/Rankin_Inlet", "CYUT": "America/Rankin_Inlet",
-    "CYBB": "America/Inuvik", "CYYH": "America/Inuvik", "CYGT": "America/Iqaluit", "CYUX": "America/Iqaluit",
-    "CYHK": "America/Yellowknife", "CYCB": "America/Yellowknife", "CYIO": "America/Iqaluit", "CYAB": "America/Iqaluit",
-    "CYCY": "America/Cambridge_Bay", "CYRB": "America/Cambridge_Bay", "CYTE": "America/Yellowknife", "CYFB": "America/Iqaluit",
-    "CYQR": "America/Regina", "CYXE": "America/Regina", "CYPA": "America/Regina", "CYSF": "America/Regina",
-    "CYVC": "America/Regina", "CYQK": "America/Winnipeg", "CYHD": "America/Winnipeg", "CYXL": "America/Winnipeg",
-    "CYRL": "America/Winnipeg", "CYPL": "America/Winnipeg", "CYQT": "America/Thunder_Bay", "CYMO": "America/Winnipeg",
-    "CYTS": "America/Toronto", "CYSK": "America/Iqaluit", "CYGW": "America/Iqaluit", "CYGL": "America/Iqaluit",
-    "CYVP": "America/Iqaluit"
+    "CYCS": "America/Rankin_Inlet", "CYZS": "America/Rankin_Inlet", "CYUT": "America/Rankin_Inlet", "CYBB": "America/Rankin_Inlet",
+    "CYYH": "America/Rankin_Inlet", "CYGT": "America/Rankin_Inlet", "CYUX": "America/Rankin_Inlet", "CYHK": "America/Cambridge_Bay",
+    "CYCB": "America/Cambridge_Bay", "CYIO": "America/Cambridge_Bay", "CYAB": "America/Cambridge_Bay", "CYCY": "America/Cambridge_Bay",
+    "CYRB": "America/Cambridge_Bay", "CYTE": "America/Cambridge_Bay", "CYFB": "America/Iqaluit", "CYQR": "America/Regina",
+    "CYXE": "America/Regina", "CYPA": "America/Regina", "CYSF": "America/Regina", "CYVC": "America/Regina",
+    "CYQK": "America/Winnipeg", "CYHD": "America/Winnipeg", "CYXL": "America/Winnipeg", "CYRL": "America/Winnipeg",
+    "CYPL": "America/Winnipeg", "CYQT": "America/Winnipeg", "CYMO": "America/Winnipeg", "CYTS": "America/Toronto",
+    "CYSK": "America/Toronto", "CYGW": "America/Toronto", "CYGL": "America/Toronto", "CYVP": "America/Toronto"
 }
 
-class TimeDisplayApp:
+class TimeApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Airport Time Zones")
+        self.root.title("Airport Time Tracker")
         self.root.geometry("300x400")
-        self.root.configure(bg='black')
         self.root.attributes('-topmost', True)
+        self.root.attributes('-alpha', 1.0)
 
-        self.num_zones = tk.IntVar(value=3)
-        self.font_family = tk.StringVar(value="Consolas")
-        self.font_size = tk.DoubleVar(value=14)
-        self.font_color = tk.StringVar(value="#ffffff")
-        self.bg_color = tk.StringVar(value="#000000")
-        self.transparency = tk.DoubleVar(value=1.0)
-        self.stay_on_top = tk.BooleanVar(value=True)
+        self.theme = ttk.Style("darkly")
+        self.time_font = ("Segoe UI", 12)
+        self.font_color = "#FFFFFF"
+        self.bg_color = "#2C2C2C"
+        self.time_bg_color = "#3E3E3E"
+        self.time_alpha = 1.0
+        self.root.configure(bg=self.bg_color)
 
-        self.zone_frames = []
+        self.airport_vars = []
+        self.labels = []
 
-        self.build_menu()
-        self.build_layout()
-        self.update_zone_ui()
-        self.update_time()
+        self.create_menu()
+        self.create_widgets()
+        self.update_times()
 
-    def build_menu(self):
-        menu = tk.Menu(self.root)
-        layout_menu = tk.Menu(menu, tearoff=0)
-        layout_menu.add_command(label="Set Font Style", command=self.set_font)
-        layout_menu.add_command(label="Set Font Color", command=self.choose_font_color)
-        layout_menu.add_command(label="Set Background Color", command=self.choose_bg_color)
-        layout_menu.add_command(label="Set Transparency", command=self.set_transparency)
-        layout_menu.add_separator()
+    def create_menu(self):
+        menubar = tk.Menu(self.root)
+        layout_menu = tk.Menu(menubar, tearoff=0)
+        layout_menu.add_command(label="Change Font", command=self.change_font)
+        layout_menu.add_command(label="Font Color", command=self.change_font_color)
+        layout_menu.add_command(label="App Background Color", command=self.change_bg_color)
+        layout_menu.add_command(label="Time Field Background", command=self.change_time_bg_color)
+        layout_menu.add_command(label="App Transparency", command=self.change_app_transparency)
+        layout_menu.add_command(label="Time Field Transparency", command=self.change_time_field_transparency)
         layout_menu.add_command(label="Add Custom Airport", command=self.add_custom_airport)
-        menu.add_cascade(label="Layout Settings", menu=layout_menu)
-        self.root.config(menu=menu)
+        menubar.add_cascade(label="Layout Settings", menu=layout_menu)
+        self.root.config(menu=menubar)
 
-    def build_layout(self):
-        control_frame = ttk.Frame(self.root)
-        control_frame.pack(pady=5, fill='x')
+    def create_widgets(self):
+        self.frame = ttk.Frame(self.root, padding=5)
+        self.frame.pack(fill='both', expand=True)
 
-        ttk.Label(control_frame, text="Number of Airports:").pack(side=tk.LEFT)
-        ttk.Spinbox(control_frame, from_=0, to=5, textvariable=self.num_zones, width=3, command=self.update_zone_ui).pack(side=tk.LEFT, padx=5)
+        # Stay on top checkbox
+        self.stay_on_top_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(self.frame, text="Stay on Top", variable=self.stay_on_top_var,
+                        command=self.toggle_stay_on_top).pack(anchor="w", padx=5)
 
-        ttk.Checkbutton(control_frame, text="Stay on Top", variable=self.stay_on_top, command=self.toggle_stay_on_top).pack(side=tk.RIGHT, padx=10)
+        # Airport count dropdown
+        self.count_var = tk.IntVar(value=2)
+        ttk.Label(self.frame, text="Select number of airports:").pack(anchor="w")
+        self.count_dropdown = ttk.Combobox(self.frame, textvariable=self.count_var, values=list(range(1, 6)), state="readonly")
+        self.count_dropdown.pack(fill='x')
+        self.count_dropdown.bind("<<ComboboxSelected>>", self.refresh_airports)
 
-        self.zones_frame = ttk.Frame(self.root)
-        self.zones_frame.pack(pady=10)
+        self.display_frame = ttk.Frame(self.frame)
+        self.display_frame.pack(fill='both', expand=True)
+        self.refresh_airports()
 
-    def update_zone_ui(self):
-        for frame in self.zone_frames:
-            frame.destroy()
-        self.zone_frames.clear()
+    def refresh_airports(self, event=None):
+        for widget in self.display_frame.winfo_children():
+            widget.destroy()
+        self.labels.clear()
+        self.airport_vars.clear()
 
-        self.add_zone_row("UTC", "UTC", is_utc=True)
+        # UTC row
+        self.add_time_row("UTC", "UTC")
 
-        for i in range(self.num_zones.get()):
-            icao_code = list(airport_timezones.keys())[i % len(airport_timezones)]
-            self.add_zone_row(icao_code, airport_timezones[icao_code])
+        # User airport rows
+        keys = list(airport_timezones.keys())
+        for i in range(self.count_var.get()):
+            var = tk.StringVar(value=keys[i % len(keys)])
+            self.airport_vars.append(var)
+            self.add_time_row(var)
 
-        self.update_display()
+    def add_time_row(self, var, tz=None):
+        row = ttk.Frame(self.display_frame)
+        row.pack(fill='x', pady=2)
 
-    def add_zone_row(self, code, tz_name, is_utc=False):
-        frame = ttk.Frame(self.zones_frame)
-        frame.pack(fill='x', pady=2)
+        if isinstance(var, str):
+            label = ttk.Label(row, text=var, width=6)
+        else:
+            dropdown = ttk.Combobox(row, textvariable=var, values=list(airport_timezones.keys()), width=6)
+            dropdown.pack(side="left", padx=2)
+            label = dropdown
 
-        label = ttk.Label(frame, text=code if not is_utc else "UTC", width=6, anchor='w', font=(self.font_family.get(), int(self.font_size.get()), "bold"))
-        label.pack(side=tk.LEFT, padx=3)
+        label.pack(side="left", padx=2)
+        time_lbl = tk.Label(row, text="", width=10, fg=self.font_color, bg=self.time_bg_color, font=self.time_font)
+        time_lbl.pack(side="left", padx=2)
+        dst_lbl = tk.Label(row, text="", width=5, fg=self.font_color, bg=self.time_bg_color, font=self.time_font)
+        dst_lbl.pack(side="left", padx=2)
 
-        time_label = ttk.Label(frame, text="", width=10, anchor='center', font=(self.font_family.get(), int(self.font_size.get())))
-        time_label.pack(side=tk.LEFT, padx=3)
+        self.labels.append((var, time_lbl, dst_lbl))
 
-        dst_label = ttk.Label(frame, text="", width=5, font=(self.font_family.get(), 10, "italic"))
-        dst_label.pack(side=tk.LEFT, padx=3)
+    def update_times(self):
+        now_utc = datetime.now(pytz.utc)
+        for var, time_lbl, dst_lbl in self.labels:
+            tz_name = "UTC" if var == "UTC" else airport_timezones.get(var.get(), "UTC")
+            tz = pytz.timezone(tz_name)
+            local_time = now_utc.astimezone(tz)
+            is_dst = local_time.dst() != timedelta(0)
 
-        frame.time_label = time_label
-        frame.dst_label = dst_label
-        frame.is_utc = is_utc
-        frame.tz_name = tz_name
-        self.zone_frames.append(frame)
+            time_lbl.config(text=local_time.strftime("%H:%M"))
+            dst_lbl.config(text="DST" if is_dst else "STD")
 
-    def update_display(self):
-        bg = self.bg_color.get()
-        fg = self.font_color.get()
-        font = (self.font_family.get(), int(self.font_size.get()))
-
-        for frame in self.zone_frames:
-            try:
-                if frame.is_utc:
-                    now_utc = datetime.utcnow()
-                    frame.time_label.config(text=f"{now_utc.strftime('%H:%M')} Z", font=font, foreground=fg, background=bg)
-                    frame.dst_label.config(text="STD", font=(self.font_family.get(), 10, "italic"), foreground=fg, background=bg)
-                else:
-                    tz = pytz.timezone(frame.tz_name)
-                    now = datetime.utcnow()
-                    local_time = tz.normalize(pytz.utc.localize(now).astimezone(tz))
-                    dst = local_time.dst()
-                    dst_flag = "DST" if dst and dst.total_seconds() > 0 else "STD"
-                    frame.time_label.config(text=f"{local_time.strftime('%H:%M')} LT", font=font, foreground=fg, background=bg)
-                    frame.dst_label.config(text=dst_flag, font=(self.font_family.get(), 10, "italic"), foreground=fg, background=bg)
-            except Exception as e:
-                frame.time_label.config(text="Invalid", foreground="red", background=bg)
-                frame.dst_label.config(text="", background=bg)
-
-        self.root.configure(bg=bg)
-        self.zones_frame.configure(style="TFrame")
-
-    def update_time(self):
-        self.update_display()
-        self.root.after(1000, self.update_time)
-
-    def choose_font_color(self):
-        color = colorchooser.askcolor(title="Choose Font Color")[1]
-        if color:
-            self.font_color.set(color)
-            self.update_display()
-
-    def choose_bg_color(self):
-        color = colorchooser.askcolor(title="Choose Background Color")[1]
-        if color:
-            self.bg_color.set(color)
-            self.update_display()
-
-    def set_transparency(self):
-        val = simpledialog.askfloat("Set Transparency", "Enter transparency (0.1 to 1.0):", minvalue=0.1, maxvalue=1.0)
-        if val:
-            self.transparency.set(val)
-            self.root.attributes('-alpha', self.transparency.get())
-
-    def set_font(self):
-        val = simpledialog.askstring("Set Font", "Enter font family (e.g., Consolas, Arial, Courier):")
-        if val:
-            self.font_family.set(val)
-            self.update_display()
-
-    def add_custom_airport(self):
-        icao = simpledialog.askstring("New ICAO", "Enter new ICAO code:")
-        if not icao:
-            return
-        tz = simpledialog.askstring("Time Zone", f"Enter IANA timezone for {icao} (e.g., America/Winnipeg):")
-        if not tz:
-            return
-        try:
-            pytz.timezone(tz)
-            airport_timezones[icao.upper()] = tz
-            self.update_zone_ui()
-        except:
-            tk.messagebox.showerror("Invalid", "Timezone name is not valid.")
+        self.root.after(1000, self.update_times)
 
     def toggle_stay_on_top(self):
-        self.root.attributes('-topmost', self.stay_on_top.get())
+        self.root.attributes('-topmost', self.stay_on_top_var.get())
 
-if __name__ == "__main__":
-    root = ttkb.Window(themename="darkly")
-    app = TimeDisplayApp(root)
+    def change_font(self):
+        fonts = list(font.families())
+        chosen = simpledialog.askstring("Font", "Enter font name:", initialvalue=self.time_font[0])
+        if chosen in fonts:
+            self.time_font = (chosen, 12)
+            for _, t, d in self.labels:
+                t.config(font=self.time_font)
+                d.config(font=self.time_font)
+
+    def change_font_color(self):
+        color = colorchooser.askcolor(title="Font Color")[1]
+        if color:
+            self.font_color = color
+            for _, t, d in self.labels:
+                t.config(fg=color)
+                d.config(fg=color)
+
+    def change_bg_color(self):
+        color = colorchooser.askcolor(title="Background Color")[1]
+        if color:
+            self.bg_color = color
+            self.root.configure(bg=color)
+
+    def change_time_bg_color(self):
+        color = colorchooser.askcolor(title="Time Field Background")[1]
+        if color:
+            self.time_bg_color = color
+            for _, t, d in self.labels:
+                t.config(bg=color)
+                d.config(bg=color)
+
+    def change_app_transparency(self):
+        val = simpledialog.askfloat("App Transparency", "Enter transparency (0.1 - 1.0):", minvalue=0.1, maxvalue=1.0)
+        if val:
+            self.root.attributes('-alpha', val)
+
+    def change_time_field_transparency(self):
+        pass  # Tkinter does not support per-widget transparency natively
+
+    def add_custom_airport(self):
+        icao = simpledialog.askstring("ICAO Code", "Enter ICAO code (e.g., XXXX):")
+        tz = simpledialog.askstring("Timezone", "Enter timezone (e.g., Europe/London):")
+        if icao and tz:
+            airport_timezones[icao.upper()] = tz
+            self.refresh_airports()
+
+# Run the app
+if __name__ == '__main__':
+    root = ttk.Window(themename="darkly")
+    app = TimeApp(root)
     root.mainloop()
