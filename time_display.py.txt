@@ -35,7 +35,6 @@ class TimeApp:
         self.font_color = "#FFFFFF"
         self.bg_color = "#2C2C2C"
         self.time_bg_color = "#3E3E3E"
-        self.time_alpha = 1.0
         self.root.configure(bg=self.bg_color)
 
         self.airport_vars = []
@@ -84,25 +83,23 @@ class TimeApp:
         self.labels.clear()
         self.airport_vars.clear()
 
-       # UTC row - manually build row with extra spacing
+        # UTC row - manually build row with extra spacing
         row = ttk.Frame(self.display_frame)
         row.pack(fill='x', pady=2)
 
-label = ttk.Label(row, text="UTC", width=6)
-label.pack(side="left", padx=2)
+        label = ttk.Label(row, text="UTC", width=6)
+        label.pack(side="left", padx=2)
 
-# Spacer to shift time label to the right (~2 char width)
-spacer = tk.Label(row, text="  ", width=2, bg=self.bg_color)
-spacer.pack(side="left")
+        spacer = tk.Label(row, text="  ", width=2, bg=self.bg_color)
+        spacer.pack(side="left")
 
-time_lbl = tk.Label(row, text="", width=10, fg=self.font_color, bg=self.time_bg_color, font=self.time_font)
-time_lbl.pack(side="left", padx=2)
+        time_lbl = tk.Label(row, text="", width=10, fg=self.font_color, bg=self.time_bg_color, font=self.time_font)
+        time_lbl.pack(side="left", padx=2)
 
-dst_lbl = tk.Label(row, text="", width=5, fg=self.font_color, bg=self.time_bg_color, font=self.time_font)
-dst_lbl.pack(side="left", padx=2)
+        dst_lbl = tk.Label(row, text="", width=5, fg=self.font_color, bg=self.time_bg_color, font=self.time_font)
+        dst_lbl.pack(side="left", padx=2)
 
-self.labels.append(("UTC", time_lbl, dst_lbl))
-
+        self.labels.append(("UTC", time_lbl, dst_lbl))
 
         # User airport rows
         keys = list(airport_timezones.keys())
