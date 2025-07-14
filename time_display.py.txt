@@ -90,7 +90,7 @@ class TimeApp:
         label = ttk.Label(row, text="UTC", width=6)
         label.pack(side="left", padx=2)
 
-        spacer = tk.Label(row, text="  ", width=2, bg=self.bg_color)
+        spacer = tk.Label(row, text="   ", width=3, bg=self.bg_color)  # 3 spaces
         spacer.pack(side="left")
 
         time_lbl = tk.Label(row, text="", width=10, fg=self.font_color, bg=self.time_bg_color, font=self.time_font)
